@@ -28,7 +28,7 @@ back_to_main_menu_keyboard= [
 ]
 
 markup_main_menu = ReplyKeyboardMarkup(main_keyboard, one_time_keyboard=True)
-markup_back_to_main_menu = ReplyKeyboardMarkup(back_to_main_menu_keyboard, one_time_keyboard=True)
+markup_back_to_main_menu = ReplyKeyboardMarkup(back_to_main_menu_keyboard, one_time_keyboard=True, resize_keyboard=True)
 
 def start(update: Update, context: CallbackContext) -> int:
     update.message.reply_text(
@@ -170,8 +170,10 @@ def change_contact (update: Update, context: CallbackContext) -> int: # !!!во�
             return CHOOSING
 
 
-def function_in_development (update: Update, context: CallbackContext) -> int:
+#def export_contacts (update: Update, context: CallbackContext) -> int:
 
+def function_in_development (update: Update, context: CallbackContext) -> int:
+    #send_photo_file(chat_id, 'photo.jpg')
     update.message.reply_text(
         'Не знаю как работать с файлами в боте\n'
         'Разберитесь по-братски, а?',
