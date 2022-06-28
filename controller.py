@@ -4,7 +4,7 @@ import logger
 import import_from_file as iff
 import export_to_file
 
-from telegram import ReplyKeyboardMarkup, Update, ReplyKeyboardRemove
+from telegram import ReplyKeyboardMarkup, Update, ReplyKeyboardRemove, bot
 from telegram.ext import (
     Updater,
     CommandHandler,
@@ -14,7 +14,7 @@ from telegram.ext import (
     CallbackContext,
 )
 
-CHOOSING, SEARCHING, ADD_CONTACT, CHANGE_CONTACT = range(4)
+CHOOSING, SEARCHING, ADD_CONTACT, CHANGE_CONTACT, IMPORT_FILES = range(5)
 
 main_keyboard = [
     ['Список контактов', 'Поиск контакта'],
@@ -170,14 +170,35 @@ def change_contact (update: Update, context: CallbackContext) -> int: # !!!во�
             return CHOOSING
 
 
-def function_in_development (update: Update, context: CallbackContext) -> int:
+def import_contacts (update: Update, context: CallbackContext) -> int:
+    last_input = update.message.text
+    
+    if last_input == 'Импорт контактов':        
+        update.message.reply_text(
+            'Загрузите файл необходимого формата с расширением ".csv" или ".json"',
+            reply_markup=markup_back_to_main_menu
+        )
+        return IMPORT_FILES
+    
+    file_name = update.message.document.file_name
+    file = context.bot.getFile(update.message.document.file_id)
+    if file_name.split('.')[-1] == 'csv': # сюда еще можно будет добавить блок try except для проверки содержимого файла
+        file.download('./import_phonebook.csv')
+    elif file_name.split('.')[-1] == 'json':
+        file.download('./import_phonebook.json')
+    else:
+        update.message.reply_text('Файл не импортирован: неизвестное расширение',
+                                    reply_markup=markup_main_menu)
+        return CHOOSING
+    
+    update.message.reply_text('Контакты импортированы',reply_markup=markup_main_menu)
+    return CHOOSING
 
-    update.message.reply_text(
-        'Не знаю как работать с файлами в боте\n'
-        'Разберитесь по-братски, а?',
-        reply_markup=markup_main_menu
-    )
-
+def export_contacts (update: Update, context: CallbackContext) -> int:
+    chat_id=update.message.chat.id
+    context.bot.send_document(chat_id=chat_id, document=open('./bd_csv_export.csv', 'rb'))
+    
+    update.message.reply_text('Контакты успешно экпортированы',reply_markup=markup_main_menu)
     return CHOOSING
 
 def done(update: Update, context: CallbackContext) -> int:
@@ -198,8 +219,8 @@ main_handler = ConversationHandler(
                 MessageHandler(Filters.regex('^Поиск контакта$'), contact_search_run),
                 MessageHandler(Filters.regex('^Добавить контакт$'), add_contact),
                 MessageHandler(Filters.regex('^Изменить контакт$'), change_contact),
-                MessageHandler(Filters.regex('^Импорт контактов$'), function_in_development),
-                MessageHandler(Filters.regex('^Экспорт контактов$'), function_in_development)
+                MessageHandler(Filters.regex('^Импорт контактов$'), import_contacts),
+                MessageHandler(Filters.regex('^Экспорт контактов$'), export_contacts)
             ],
             SEARCHING: [
                 MessageHandler(Filters.text & ~(Filters.command | Filters.regex('^Вернуться в главное меню$')), contact_search),
@@ -214,6 +235,10 @@ main_handler = ConversationHandler(
                 MessageHandler(Filters.text & ~(Filters.command | Filters.regex('^Вернуться в главное меню$')), change_contact),
                 MessageHandler(Filters.regex('^Вернуться в главное меню$'), back_to_main_menu)
             ],
+            IMPORT_FILES: [
+                MessageHandler(Filters.document, import_contacts),
+                MessageHandler(Filters.regex('^Вернуться в главное меню$'), back_to_main_menu)
+            ]
 
         },
         fallbacks=[MessageHandler(Filters.regex('^Завершить$'), done)],
