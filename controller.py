@@ -3,8 +3,11 @@ import database_module
 import logger
 import import_from_file as iff
 import export_to_file
+import telebot
+import requests
+from bot_token import tok
 
-from telegram import ReplyKeyboardMarkup, Update, ReplyKeyboardRemove
+from telegram import Bot, Document, ReplyKeyboardMarkup, Update, ReplyKeyboardRemove
 from telegram.ext import (
     Updater,
     CommandHandler,
@@ -14,7 +17,7 @@ from telegram.ext import (
     CallbackContext,
 )
 
-CHOOSING, SEARCHING, ADD_CONTACT, CHANGE_CONTACT = range(4)
+CHOOSING, SEARCHING, ADD_CONTACT, CHANGE_CONTACT, UPLOAD_FILE = range(5)
 
 main_keyboard = [
     ['Список контактов', 'Поиск контакта'],
@@ -170,6 +173,42 @@ def change_contact (update: Update, context: CallbackContext) -> int: # !!!во�
             return CHOOSING
 
 
+def upload_file(update: Update, context: CallbackContext) -> int:
+    #last_input = update.message.text                                  
+    user_data = context.user_data
+    
+    if update.message.text == 'Импорт контактов':
+        update.message.reply_text('Импорт контактов') 
+        update.message.reply_text('Загрузите файл с контактами:', reply_markup = markup_back_to_main_menu)                 
+        
+        return UPLOAD_FILE
+    else:
+        #import_file = update.message.effective_attachment.get_file() #Updater.bot.get_file(update.message.document.file_id)
+        #file_id = update.message.document.file_id
+        #newfile = Bot.get_file(file_id)
+        
+        #file_id = user_data.file_id # user_data #context.user_data.__doc__
+        #import_file = Updater.bot.download_file(file_info.file_path)
+        
+        #newfile.download('file_name')
+        #newfile = context.bot.get_file(...)
+        #newfile.download('file_name')
+        update.message.reply_text('Пожалуй, я сохраню это', reply_markup=markup_main_menu)
+        return CHOOSING
+
+    # try:
+    #     chat_id = message.chat.id
+    #     file_info = bot.get_file(message.document.file_id)
+    #     downloaded_file = bot.download_file(file_info.file_path)
+
+    #     src = 'C:/Python/Project/tg_bot/files/received/' + message.document.file_name
+    #     with open(src, 'wb') as new_file:
+    #         new_file.write(downloaded_file)
+
+    #     bot.reply_to(message, "Пожалуй, я сохраню это")
+    # except Exception as e:
+    #     bot.reply_to(message, e)
+
 def function_in_development (update: Update, context: CallbackContext) -> int:
 
     update.message.reply_text(
@@ -198,7 +237,7 @@ main_handler = ConversationHandler(
                 MessageHandler(Filters.regex('^Поиск контакта$'), contact_search_run),
                 MessageHandler(Filters.regex('^Добавить контакт$'), add_contact),
                 MessageHandler(Filters.regex('^Изменить контакт$'), change_contact),
-                MessageHandler(Filters.regex('^Импорт контактов$'), function_in_development),
+                MessageHandler(Filters.regex('^Импорт контактов$'), upload_file),
                 MessageHandler(Filters.regex('^Экспорт контактов$'), function_in_development)
             ],
             SEARCHING: [
@@ -212,6 +251,10 @@ main_handler = ConversationHandler(
             ],
             CHANGE_CONTACT: [
                 MessageHandler(Filters.text & ~(Filters.command | Filters.regex('^Вернуться в главное меню$')), change_contact),
+                MessageHandler(Filters.regex('^Вернуться в главное меню$'), back_to_main_menu)
+            ],
+            UPLOAD_FILE: [
+                MessageHandler(Filters.text & ~(Filters.command | Filters.regex('^Вернуться в главное меню$')), upload_file),
                 MessageHandler(Filters.regex('^Вернуться в главное меню$'), back_to_main_menu)
             ],
 
